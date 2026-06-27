@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-"""Build a professional 6-slide PPTX on Photosynthesis."""
+#!/usr/bin/env python3
+"""Build Photosynthesis.pptx — 6-slide biology presentation with green nature palette."""
 
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
@@ -8,454 +8,622 @@ from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
 import os
 
-# ── Colour palette ──────────────────────────────────────────────
-DARK_GREEN   = RGBColor(0x1B, 0x5E, 0x20)   # headers, footer
-MID_GREEN    = RGBColor(0x2E, 0x7D, 0x32)   # accents
-LIGHT_GREEN  = RGBColor(0x4C, 0xAF, 0x50)   # highlights
-PALE_GREEN   = RGBColor(0xE8, 0xF5, 0xE9)   # backgrounds
+# ── Palette ──────────────────────────────────────────────────
+DARK_GREEN   = RGBColor(0x1B, 0x43, 0x32)   # title / conclusion bg
+LEAF_GREEN   = RGBColor(0x2D, 0x6A, 0x4F)   # accent
+MID_GREEN    = RGBColor(0x40, 0x91, 0x6C)   # lighter accent
+HIGHLIGHT    = RGBColor(0x52, 0xB7, 0x88)   # bright highlight
+LIGHT_BG     = RGBColor(0xF0, 0xF7, 0xF4)   # content slide bg
+OFF_WHITE    = RGBColor(0xFA, 0xFD, 0xFB)   # near-white
 WHITE        = RGBColor(0xFF, 0xFF, 0xFF)
-BLACK        = RGBColor(0x00, 0x00, 0x00)
-DARK_GREY    = RGBColor(0x33, 0x33, 0x33)
-MID_GREY     = RGBColor(0x75, 0x75, 0x75)
-ACCENT_GOLD  = RGBColor(0xFF, 0xA7, 0x26)   # bullet highlights
-LEAF_YELLOW  = RGBColor(0xCD, 0xDC, 0x39)
-
-W = Inches(13.333)   # 16:9 widescreen
-H = Inches(7.5)
+DARK_TEXT    = RGBColor(0x0D, 0x28, 0x18)   # near-black dark
+BODY_TEXT    = RGBColor(0x1B, 0x43, 0x32)   # body on light
+SUBTLE       = RGBColor(0x6B, 0x90, 0x80)   # muted green-gray
+WARM_ACCENT  = RGBColor(0xD4, 0xA3, 0x37)   # gold accent for highlights
+GOLD_LIGHT   = RGBColor(0xF0, 0xD0, 0x60)   # lighter gold
 
 prs = Presentation()
-prs.slide_width  = W
-prs.slide_height = H
+prs.slide_width  = Inches(13.333)
+prs.slide_height = Inches(7.5)
+W = prs.slide_width
+H = prs.slide_height
 
-# ── Helpers ─────────────────────────────────────────────────────
+# ── Helpers ──────────────────────────────────────────────────
+
 def add_bg(slide, color):
-    """Fill the entire slide background with *color*."""
     bg = slide.background
     fill = bg.fill
     fill.solid()
     fill.fore_color.rgb = color
 
-def add_rect(slide, left, top, width, height, fill_color, line_color=None):
-    """Add a rectangle shape."""
+def rect_shape(slide, left, top, width, height, fill_color=None, line_color=None, line_width=None):
     shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, width, height)
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = fill_color
+    shape.line.fill.background()
+    if fill_color:
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = fill_color
     if line_color:
         shape.line.color.rgb = line_color
-        shape.line.width = Pt(1)
-    else:
-        shape.line.fill.background()
+        shape.line.fill.solid()
+        if line_width:
+            shape.line.width = line_width
     return shape
 
-def add_textbox(slide, left, top, width, height, text, font_size=18,
-                color=BLACK, bold=False, alignment=PP_ALIGN.LEFT,
-                font_name="Calibri", anchor=MSO_ANCHOR.TOP):
-    """Add a text box with a single run."""
+def rounded_rect(slide, left, top, width, height, fill_color=None, line_color=None, line_width=None):
+    shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, left, top, width, height)
+    shape.line.fill.background()
+    if fill_color:
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = fill_color
+    if line_color:
+        shape.line.color.rgb = line_color
+        shape.line.fill.solid()
+        if line_width:
+            shape.line.width = line_width
+    return shape
+
+def circle_shape(slide, left, top, size, fill_color=None, line_color=None, line_width=None):
+    shape = slide.shapes.add_shape(MSO_SHAPE.OVAL, left, top, size, size)
+    shape.line.fill.background()
+    if fill_color:
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = fill_color
+    if line_color:
+        shape.line.color.rgb = line_color
+        shape.line.fill.solid()
+        if line_width:
+            shape.line.width = line_width
+    return shape
+
+def arrow_right(slide, left, top, width, height, fill_color=None):
+    shape = slide.shapes.add_shape(MSO_SHAPE.RIGHT_ARROW, left, top, width, height)
+    shape.line.fill.background()
+    if fill_color:
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = fill_color
+    return shape
+
+def arrow_down(slide, left, top, width, height, fill_color=None):
+    shape = slide.shapes.add_shape(MSO_SHAPE.DOWN_ARROW, left, top, width, height)
+    shape.line.fill.background()
+    if fill_color:
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = fill_color
+    return shape
+
+def text_box(slide, left, top, width, height, text="", font_name="Calibri",
+             font_size=Pt(18), bold=False, color=BODY_TEXT, alignment=PP_ALIGN.LEFT,
+             line_spacing=1.15):
     txBox = slide.shapes.add_textbox(left, top, width, height)
-    txBox.word_wrap = True
     tf = txBox.text_frame
     tf.word_wrap = True
-    tf.auto_size = None
     p = tf.paragraphs[0]
     p.text = text
-    p.font.size = Pt(font_size)
-    p.font.color.rgb = color
-    p.font.bold = bold
     p.font.name = font_name
+    p.font.size = font_size
+    p.font.bold = bold
+    p.font.color.rgb = color
     p.alignment = alignment
+    p.line_spacing = line_spacing
     return txBox
 
-def add_bullet_frame(slide, left, top, width, height, bullets, font_size=16,
-                     color=DARK_GREY, bold_first=False, line_spacing=1.3,
-                     bullet_char="●", bullet_color=LIGHT_GREEN):
-    """Add a text frame with bulleted lines."""
+def add_paragraph(tf, text, font_name="Calibri", font_size=Pt(18), bold=False,
+                  color=BODY_TEXT, alignment=PP_ALIGN.LEFT, space_before=Pt(6),
+                  line_spacing=1.15, space_after=Pt(2)):
+    p = tf.add_paragraph()
+    p.text = text
+    p.font.name = font_name
+    p.font.size = font_size
+    p.font.bold = bold
+    p.font.color.rgb = color
+    p.alignment = alignment
+    p.space_before = space_before
+    p.line_spacing = line_spacing
+    p.space_after = space_after
+    return p
+
+def multi_text(slide, left, top, width, height, paragraphs_data, default_size=Pt(18),
+               default_color=BODY_TEXT, default_font="Calibri"):
+    """paragraphs_data: list of (text, bold?, font_size|None, color|None)"""
     txBox = slide.shapes.add_textbox(left, top, width, height)
-    txBox.word_wrap = True
     tf = txBox.text_frame
     tf.word_wrap = True
-
-    for i, line in enumerate(bullets):
+    for i, item in enumerate(paragraphs_data):
+        if isinstance(item, str):
+            text, bold, fs, clr = item, False, default_size, default_color
+        else:
+            text = item[0]
+            bold = item[1] if len(item) > 1 else False
+            fs = item[2] if len(item) > 2 else default_size
+            clr = item[3] if len(item) > 3 else default_color
         if i == 0:
             p = tf.paragraphs[0]
         else:
             p = tf.add_paragraph()
-        p.text = f"{bullet_char}  {line}"
-        p.font.size = Pt(font_size)
-        p.font.color.rgb = color
-        p.font.name = "Calibri"
-        p.space_after = Pt(line_spacing * font_size - font_size)
-        # First word bold option
-        # (simple approach — bold the whole line for emphasis bullets)
+        p.text = text
+        p.font.name = default_font
+        p.font.size = fs
+        p.font.bold = bold
+        p.font.color.rgb = clr
+        p.alignment = PP_ALIGN.LEFT
+        p.line_spacing = 1.15
     return txBox
 
-def add_footer(slide, slide_num, presenter=""):
-    """Standard footer bar."""
-    bar = add_rect(slide, Inches(0), H - Inches(0.55), W, Inches(0.55), DARK_GREEN)
-    add_textbox(slide, Inches(0.5), H - Inches(0.48), Inches(5), Inches(0.4),
-                f"Photosynthesis: How Plants Make Their Own Food  |  {presenter}",
-                font_size=9, color=WHITE, bold=False, alignment=PP_ALIGN.LEFT)
-    add_textbox(slide, Inches(12.2), H - Inches(0.48), Inches(0.8), Inches(0.4),
-                str(slide_num), font_size=9, color=WHITE, bold=True,
-                alignment=PP_ALIGN.RIGHT)
 
-def add_slide_number(slide, num, presenter=""):
-    add_footer(slide, num, presenter)
+# ══════════════════════════════════════════════════════════════
+# SLIDE 1 — Title Slide (Levy, presenter)
+# ══════════════════════════════════════════════════════════════
+slide1 = prs.slides.add_slide(prs.slide_layouts[6])  # blank
+add_bg(slide1, DARK_GREEN)
 
-# ── Presenters ──────────────────────────────────────────────────
-PRESENTERS = [
-    "Dr. Sarah Chen",
-    "Prof. Marcus Williams",
-    "Dr. Aisha Patel",
-    "Dr. James Rodriguez",
-    "Prof. Emily Nakamura",
+# Decorative top accent bar
+rect_shape(slide1, Inches(0), Inches(0), W, Inches(0.08), HIGHLIGHT)
+
+# Large decorative leaf strip (subtle geometric shapes)
+for i in range(5):
+    x = Inches(0.5 + i * 2.6)
+    circle_shape(slide1, x, Inches(2.0), Inches(0.7), MID_GREEN)
+
+# Main title
+text_box(slide1, Inches(1.5), Inches(2.9), Inches(10.3), Inches(1.5),
+         "How Plants Eat Sunshine",
+         font_name="Calibri Light", font_size=Pt(54), bold=False, color=WHITE,
+         alignment=PP_ALIGN.CENTER)
+
+text_box(slide1, Inches(1.5), Inches(3.65), Inches(10.3), Inches(1.0),
+         "The Magic of Photosynthesis",
+         font_name="Calibri Light", font_size=Pt(48), bold=False, color=GOLD_LIGHT,
+         alignment=PP_ALIGN.CENTER)
+
+# Separator line
+rect_shape(slide1, Inches(4.5), Inches(4.55), Inches(4.3), Inches(0.03), HIGHLIGHT)
+
+# Subtitle
+text_box(slide1, Inches(1.5), Inches(4.85), Inches(10.3), Inches(0.7),
+         "Or: Why You Owe Every Breath to a Leaf",
+         font_name="Calibri Light", font_size=Pt(26), bold=False, color=SUBTLE,
+         alignment=PP_ALIGN.CENTER)
+
+# Team line
+text_box(slide1, Inches(1.5), Inches(5.85), Inches(10.3), Inches(0.5),
+         "Levy  •  Member 2  •  Member 3  •  Member 4  •  Member 5",
+         font_name="Calibri", font_size=Pt(18), bold=False, color=SUBTLE,
+         alignment=PP_ALIGN.CENTER)
+
+# Bottom accent bar
+rect_shape(slide1, Inches(0), Inches(7.42), W, Inches(0.08), HIGHLIGHT)
+
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 2 — What IS Photosynthesis? (Member 2)
+# ══════════════════════════════════════════════════════════════
+slide2 = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide2, LIGHT_BG)
+
+# Top accent
+rect_shape(slide2, Inches(0), Inches(0), W, Inches(0.06), DARK_GREEN)
+
+# Section number + title
+txBox_s2 = slide2.shapes.add_textbox(Inches(0.8), Inches(0.5), Inches(5), Inches(0.8))
+tf = txBox_s2.text_frame
+tf.word_wrap = True
+p = tf.paragraphs[0]
+p.text = "01  ·  WHAT IS PHOTOSYNTHESIS?"
+p.font.name = "Calibri"
+p.font.size = Pt(13)
+p.font.bold = True
+p.font.color.rgb = LEAF_GREEN
+p.line_spacing = 1.0
+
+text_box(slide2, Inches(0.8), Inches(1.0), Inches(11.7), Inches(0.7),
+         "Plants Turn Sunlight into Food",
+         font_name="Calibri Light", font_size=Pt(36), bold=False, color=DARK_GREEN)
+
+# Equation box
+eq_box = rounded_rect(slide2, Inches(0.8), Inches(1.85), Inches(7.5), Inches(1.25),
+                      fill_color=RGBColor(0xE0, 0xEE, 0xE8),
+                      line_color=LEAF_GREEN, line_width=Pt(1.5))
+
+txBox_eq = slide2.shapes.add_textbox(Inches(1.1), Inches(1.95), Inches(7.0), Inches(1.1))
+tf_eq = txBox_eq.text_frame
+tf_eq.word_wrap = True
+p_eq = tf_eq.paragraphs[0]
+p_eq.text = "The Simplest Definition"
+p_eq.font.name = "Calibri"
+p_eq.font.size = Pt(14)
+p_eq.font.bold = True
+p_eq.font.color.rgb = LEAF_GREEN
+p_eq2 = tf_eq.add_paragraph()
+p_eq2.text = "Sunlight  +  Water  +  CO₂    ⟶    Glucose  +  Oxygen"
+p_eq2.font.name = "Calibri"
+p_eq2.font.size = Pt(20)
+p_eq2.font.bold = False
+p_eq2.font.color.rgb = DARK_TEXT
+p_eq2.space_before = Pt(4)
+
+# Equation formula below
+text_box(slide2, Inches(0.8), Inches(3.2), Inches(7.5), Inches(0.5),
+         "6 CO₂  +  6 H₂O  +  Light Energy    ⟶    C₆H₁₂O₆  +  6 O₂",
+         font_name="Calibri", font_size=Pt(16), bold=False, color=DARK_TEXT)
+
+# Fun fact callout
+fun_box = rounded_rect(slide2, Inches(8.8), Inches(1.85), Inches(3.7), Inches(1.95),
+                       fill_color=DARK_GREEN, line_color=None)
+txBox_fun = slide2.shapes.add_textbox(Inches(9.0), Inches(1.95), Inches(3.3), Inches(1.75))
+tf_fun = txBox_fun.text_frame
+tf_fun.word_wrap = True
+p_fun = tf_fun.paragraphs[0]
+p_fun.text = "💡  Fun Fact"
+p_fun.font.name = "Calibri"
+p_fun.font.size = Pt(14)
+p_fun.font.bold = True
+p_fun.font.color.rgb = GOLD_LIGHT
+p_fun2 = tf_fun.add_paragraph()
+p_fun2.text = "Every oxygen molecule you breathe was once split from a water molecule by a plant."
+p_fun2.font.name = "Calibri Light"
+p_fun2.font.size = Pt(14)
+p_fun2.font.color.rgb = WHITE
+p_fun2.space_before = Pt(8)
+p_fun2.line_spacing = 1.3
+
+# Where it happens section
+text_box(slide2, Inches(0.8), Inches(4.0), Inches(7.0), Inches(0.5),
+         "Where It Happens",
+         font_name="Calibri", font_size=Pt(16), bold=True, color=LEAF_GREEN)
+
+text_box(slide2, Inches(0.8), Inches(4.35), Inches(7.0), Inches(0.7),
+         "Inside chloroplasts — tiny green solar panels in leaf cells",
+         font_name="Calibri Light", font_size=Pt(16), bold=False, color=BODY_TEXT)
+
+# 3 inputs → 2 outputs visual
+# Inputs row
+y_io = Inches(5.3)
+for idx, (label, clr) in enumerate([
+    ("☀  SUNLIGHT", GOLD_LIGHT),
+    ("💧  WATER", RGBColor(0x74, 0xBF, 0xE1)),
+    ("🌬  CO₂", RGBColor(0xB0, 0xBE, 0xC5)),
+]):
+    bx = Inches(0.8 + idx * 2.5)
+    btn = rounded_rect(slide2, bx, y_io, Inches(2.1), Inches(0.55),
+                       fill_color=DARK_GREEN)
+    text_box(slide2, Inches(0.95 + idx * 2.5), Inches(5.35), Inches(1.9), Inches(0.45),
+             label, font_name="Calibri", font_size=Pt(13), bold=True, color=clr,
+             alignment=PP_ALIGN.CENTER)
+
+# Arrow
+arrow_right(slide2, Inches(7.5), Inches(5.35), Inches(0.6), Inches(0.45), HIGHLIGHT)
+
+# Outputs
+for idx, (label, clr) in enumerate([
+    ("🍬  GLUCOSE (Food)", GOLD_LIGHT),
+    ("🫧  OXYGEN", RGBColor(0x74, 0xBF, 0xE1)),
+]):
+    bx = Inches(8.5 + idx * 2.2)
+    btn = rounded_rect(slide2, bx, y_io, Inches(1.9), Inches(0.55),
+                       fill_color=DARK_GREEN)
+    text_box(slide2, Inches(8.6 + idx * 2.2), Inches(5.35), Inches(1.7), Inches(0.45),
+             label, font_name="Calibri", font_size=Pt(13), bold=True, color=clr,
+             alignment=PP_ALIGN.CENTER)
+
+# Bottom accent
+rect_shape(slide2, Inches(0), Inches(7.44), W, Inches(0.06), DARK_GREEN)
+
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 3 — The Light Reactions (Member 3)
+# ══════════════════════════════════════════════════════════════
+slide3 = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide3, LIGHT_BG)
+rect_shape(slide3, Inches(0), Inches(0), W, Inches(0.06), DARK_GREEN)
+
+# Section label
+text_box(slide3, Inches(0.8), Inches(0.5), Inches(5), Inches(0.5),
+         "02  ·  THE LIGHT REACTIONS", font_name="Calibri", font_size=Pt(13),
+         bold=True, color=LEAF_GREEN)
+
+text_box(slide3, Inches(0.8), Inches(1.0), Inches(11.7), Inches(0.7),
+         "Catching Energy — Phase 1",
+         font_name="Calibri Light", font_size=Pt(36), bold=False, color=DARK_GREEN)
+
+text_box(slide3, Inches(0.8), Inches(1.55), Inches(11.7), Inches(0.5),
+         'Happens in the thylakoid membranes — the "pancake stacks" inside chloroplasts',
+         font_name="Calibri Light", font_size=Pt(16), bold=False, color=BODY_TEXT)
+
+# ── Process flow visual ──
+# Sun / Light source
+circle_shape(slide3, Inches(1.2), Inches(2.6), Inches(1.2),
+             fill_color=GOLD_LIGHT, line_color=RGBColor(0xE0, 0xA8, 0x20), line_width=Pt(2))
+text_box(slide3, Inches(1.2), Inches(3.9), Inches(1.2), Inches(0.4),
+         "Light Energy", font_name="Calibri", font_size=Pt(11), bold=True,
+         color=DARK_TEXT, alignment=PP_ALIGN.CENTER)
+
+# Arrow sun → chlorophyll
+arrow_right(slide3, Inches(2.6), Inches(3.0), Inches(0.55), Inches(0.35), HIGHLIGHT)
+
+# Chlorophyll / thylakoid box
+chloro = rounded_rect(slide3, Inches(3.4), Inches(2.3), Inches(2.8), Inches(1.8),
+                      fill_color=DARK_GREEN, line_color=None)
+text_box(slide3, Inches(3.55), Inches(2.4), Inches(2.5), Inches(0.45),
+         "CHLOROPHYLL", font_name="Calibri", font_size=Pt(15), bold=True,
+         color=GOLD_LIGHT, alignment=PP_ALIGN.CENTER)
+text_box(slide3, Inches(3.55), Inches(2.8), Inches(2.5), Inches(0.9),
+         "Captures light\nSplits H₂O molecules\nReleases O₂",
+         font_name="Calibri Light", font_size=Pt(12), bold=False,
+         color=WHITE, alignment=PP_ALIGN.CENTER)
+
+# Arrow chlorophyll → products
+arrow_right(slide3, Inches(6.5), Inches(3.0), Inches(0.55), Inches(0.35), HIGHLIGHT)
+
+# Products boxes
+y_prod = Inches(2.2)
+for idx, (label, desc, clr) in enumerate([
+    ("ATP", "Energy\nCurrency", GOLD_LIGHT),
+    ("NADPH", "Electron\nCarrier", RGBColor(0x95, 0xD5, 0xB2)),
+    ("O₂", "Oxygen\nReleased", RGBColor(0x74, 0xBF, 0xE1)),
+]):
+    bx = rounded_rect(slide3, Inches(7.35), Inches(2.15 + idx * 1.05),
+                      Inches(1.5), Inches(0.9),
+                      fill_color=DARK_GREEN if idx < 2 else MID_GREEN,
+                      line_color=None)
+    text_box(slide3, Inches(7.45), Inches(2.2 + idx * 1.05), Inches(1.3), Inches(0.3),
+             label, font_name="Calibri", font_size=Pt(14), bold=True,
+             color=clr, alignment=PP_ALIGN.CENTER)
+    text_box(slide3, Inches(7.45), Inches(2.45 + idx * 1.05), Inches(1.3), Inches(0.5),
+             desc, font_name="Calibri Light", font_size=Pt(10), bold=False,
+             color=WHITE if idx < 2 else DARK_GREEN, alignment=PP_ALIGN.CENTER)
+
+# Key points below
+pts3 = [
+    ("Chlorophyll captures sunlight and splits water", False),
+    ("Produces ATP — the cell's energy currency", False),
+    ("Produces NADPH — carries electrons to Phase 2", False),
+    ("Byproduct: oxygen is released into the air", False),
 ]
+y_pts = Inches(4.7)
+for idx, (txt, bld) in enumerate(pts3):
+    dot = circle_shape(slide3, Inches(0.9), Inches(4.82 + idx * 0.38), Inches(0.14), fill_color=LEAF_GREEN)
+    text_box(slide3, Inches(1.2), Inches(4.78 + idx * 0.38), Inches(8), Inches(0.35),
+             txt, font_name="Calibri Light", font_size=Pt(15), bold=False, color=BODY_TEXT)
 
-# =====================================================================
-# SLIDE 1 — Title Slide
-# =====================================================================
-sl = prs.slides.add_slide(prs.slide_layouts[6])  # blank
-add_bg(sl, DARK_GREEN)
-
-# Decorative leaf-shaped accent band
-add_rect(sl, Inches(0), Inches(2.8), W, Inches(1.8), MID_GREEN)
-
-# Title
-add_textbox(sl, Inches(1), Inches(1.0), Inches(11.3), Inches(1.2),
-            "Photosynthesis",
-            font_size=52, color=WHITE, bold=True, alignment=PP_ALIGN.CENTER,
-            font_name="Calibri Light")
-add_textbox(sl, Inches(1), Inches(2.1), Inches(11.3), Inches(0.8),
-            "How Plants Make Their Own Food",
-            font_size=28, color=LEAF_YELLOW, bold=False, alignment=PP_ALIGN.CENTER,
-            font_name="Calibri Light")
-
-# Presenter list inside the band
-y_start = Inches(3.15)
-add_textbox(sl, Inches(2), y_start, Inches(9.3), Inches(0.35),
-            "PRESENTED BY", font_size=11, color=WHITE, bold=True,
-            alignment=PP_ALIGN.CENTER)
-
-for i, name in enumerate(PRESENTERS):
-    y = y_start + Inches(0.35) + Inches(i * 0.32)
-    add_textbox(sl, Inches(2), y, Inches(9.3), Inches(0.3),
-                name, font_size=16, color=WHITE, bold=False,
-                alignment=PP_ALIGN.CENTER)
-
-# Date / context
-add_textbox(sl, Inches(1), Inches(6.2), Inches(11.3), Inches(0.4),
-            "Department of Biological Sciences  |  June 2026",
-            font_size=11, color=RGBColor(0xA5, 0xD6, 0xA7), bold=False,
-            alignment=PP_ALIGN.CENTER)
-
-add_footer(sl, 1, "")
-
-# =====================================================================
-# SLIDE 2 — What is Photosynthesis?
-# =====================================================================
-sl = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(sl, WHITE)
-
-# Header bar
-add_rect(sl, Inches(0), Inches(0), W, Inches(1.15), DARK_GREEN)
-add_textbox(sl, Inches(0.8), Inches(0.25), Inches(11.5), Inches(0.7),
-            "What is Photosynthesis?",
-            font_size=36, color=WHITE, bold=True, alignment=PP_ALIGN.LEFT,
-            font_name="Calibri Light")
-
-# Left panel — Definition
-left_box = add_rect(sl, Inches(0.6), Inches(1.5), Inches(5.8), Inches(2.4), PALE_GREEN, LIGHT_GREEN)
-add_textbox(sl, Inches(0.9), Inches(1.65), Inches(5.2), Inches(2.1),
-            "Photosynthesis is the biochemical process by which green plants, algae, and "
-            "some bacteria convert light energy into chemical energy stored in glucose. "
-            "Using sunlight, water, and carbon dioxide, plants produce glucose and release "
-            "oxygen as a by-product.",
-            font_size=16, color=DARK_GREY, bold=False, alignment=PP_ALIGN.LEFT)
-
-# Right panel — Equation (styled)
-eq_box = add_rect(sl, Inches(6.8), Inches(1.5), Inches(5.8), Inches(2.4), DARK_GREEN)
-add_textbox(sl, Inches(7.1), Inches(1.65), Inches(5.2), Inches(0.4),
-            "THE CHEMICAL EQUATION",
-            font_size=12, color=LEAF_YELLOW, bold=True, alignment=PP_ALIGN.CENTER)
-add_textbox(sl, Inches(7.1), Inches(2.2), Inches(5.2), Inches(1.5),
-            "6 CO₂  +  6 H₂O  +  Light Energy\n"
-            "           ═══════════════►\n"
-            "C₆H₁₂O₆  +  6 O₂",
-            font_size=18, color=WHITE, bold=True, alignment=PP_ALIGN.CENTER)
-
-# Key facts row
-facts = [
-    ("📗  Autotrophic", "Plants produce\ntheir own food"),
-    ("🌱  Chloroplasts", "Organelles where\nphotosynthesis occurs"),
-    ("☀️  Endergonic", "Requires energy\ninput (sunlight)"),
-    ("💨  Gas Exchange", "CO₂ in, O₂ out\nvia stomata"),
-]
-for i, (title, desc) in enumerate(facts):
-    x = Inches(0.6 + i * 3.15)
-    box = add_rect(sl, x, Inches(4.25), Inches(2.9), Inches(1.7), PALE_GREEN)
-    box.line.color.rgb = LIGHT_GREEN
-    box.line.width = Pt(1.5)
-    add_textbox(sl, Inches(x.inches + 0.15), Inches(4.4), Inches(2.6), Inches(0.5),
-                title, font_size=12, color=DARK_GREEN, bold=True,
-                alignment=PP_ALIGN.CENTER)
-    add_textbox(sl, Inches(x.inches + 0.15), Inches(4.85), Inches(2.6), Inches(0.9),
-                desc, font_size=11, color=MID_GREY, bold=False,
-                alignment=PP_ALIGN.CENTER)
-
-# Bottom highlight
-add_rect(sl, Inches(0.6), Inches(6.2), Inches(12.1), Inches(0.55), DARK_GREEN)
-add_textbox(sl, Inches(0.9), Inches(6.28), Inches(11.5), Inches(0.4),
-            "💡  Fun Fact:  Photosynthesis produces ~170 billion tonnes of biomass annually — "
-            "the foundation of nearly all food chains on Earth!",
-            font_size=12, color=WHITE, bold=False, alignment=PP_ALIGN.CENTER)
-
-add_slide_number(sl, 2, PRESENTERS[0])
-
-# =====================================================================
-# SLIDE 3 — The Ingredients
-# =====================================================================
-sl = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(sl, WHITE)
-
-# Header
-add_rect(sl, Inches(0), Inches(0), W, Inches(1.15), DARK_GREEN)
-add_textbox(sl, Inches(0.8), Inches(0.25), Inches(11.5), Inches(0.7),
-            "The Ingredients of Photosynthesis",
-            font_size=36, color=WHITE, bold=True, alignment=PP_ALIGN.LEFT,
-            font_name="Calibri Light")
-
-# Four ingredient cards
-ingredients = [
-    ("☀️  Sunlight",
-     "• Primary energy source\n• Visible spectrum (400-700 nm)\n• Absorbed by chlorophyll pigments\n• Powers light-dependent reactions"),
-    ("💧  Water (H₂O)",
-     "• Absorbed by roots from soil\n• Transported via xylem vessels\n• Split during photolysis\n• Provides electrons & H⁺ ions"),
-    ("🫧  Carbon Dioxide (CO₂)",
-     "• Enters through stomata\n• Diffuses into leaf mesophyll\n• Fixed in the Calvin cycle\n• Provides carbon backbone"),
-    ("🌿  Chlorophyll",
-     "• Green pigment in chloroplasts\n• Located in thylakoid membranes\n• Absorbs red & blue light best\n• Reflects green light"),
-]
-
-for i, (title, desc) in enumerate(ingredients):
-    x = Inches(0.4 + i * 3.2)
-    card = add_rect(sl, x, Inches(1.45), Inches(2.95), Inches(3.5), PALE_GREEN)
-    card.line.color.rgb = LIGHT_GREEN
-    card.line.width = Pt(1.5)
-    # Title bar on card
-    add_rect(sl, x, Inches(1.45), Inches(2.95), Inches(0.65), LIGHT_GREEN)
-    add_textbox(sl, Inches(x.inches + 0.1), Inches(1.55), Inches(2.75), Inches(0.5),
-                title, font_size=15, color=WHITE, bold=True, alignment=PP_ALIGN.CENTER)
-    add_textbox(sl, Inches(x.inches + 0.2), Inches(2.3), Inches(2.55), Inches(2.4),
-                desc, font_size=12, color=DARK_GREY, bold=False, alignment=PP_ALIGN.LEFT)
-
-# Bottom summary bar
-add_rect(sl, Inches(0.4), Inches(5.2), Inches(12.5), Inches(0.6), DARK_GREEN)
-add_textbox(sl, Inches(0.7), Inches(5.28), Inches(12), Inches(0.45),
-            "🔑  All four ingredients must be present simultaneously for photosynthesis to proceed efficiently.",
-            font_size=13, color=WHITE, bold=False, alignment=PP_ALIGN.CENTER)
-
-# Additional detail: absorption spectrum mini-note
-add_rect(sl, Inches(0.4), Inches(6.05), Inches(12.5), Inches(0.75), PALE_GREEN)
-add_textbox(sl, Inches(0.7), Inches(6.12), Inches(11.9), Inches(0.6),
-            "📊  Key Insight:  Chlorophyll a absorbs maximally at ~430 nm (blue) and ~662 nm (red). "
-            "Accessory pigments (chlorophyll b, carotenoids) broaden the absorption spectrum, "
-            "capturing energy that chlorophyll a alone would miss.",
-            font_size=11, color=DARK_GREY, bold=False, alignment=PP_ALIGN.LEFT)
-
-add_slide_number(sl, 3, PRESENTERS[1])
-
-# =====================================================================
-# SLIDE 4 — The Process (Two Stages)
-# =====================================================================
-sl = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(sl, WHITE)
-
-# Header
-add_rect(sl, Inches(0), Inches(0), W, Inches(1.15), DARK_GREEN)
-add_textbox(sl, Inches(0.8), Inches(0.25), Inches(11.5), Inches(0.7),
-            "The Two Stages of Photosynthesis",
-            font_size=36, color=WHITE, bold=True, alignment=PP_ALIGN.LEFT,
-            font_name="Calibri Light")
-
-# ---- Stage 1: Light-Dependent Reactions ----
-left_box = add_rect(sl, Inches(0.4), Inches(1.45), Inches(6.1), Inches(2.8), PALE_GREEN, LIGHT_GREEN)
-# Stage 1 header
-add_rect(sl, Inches(0.4), Inches(1.45), Inches(6.1), Inches(0.55), MID_GREEN)
-add_textbox(sl, Inches(0.55), Inches(1.52), Inches(5.8), Inches(0.45),
-            "⚡  STAGE 1: Light-Dependent Reactions",
-            font_size=17, color=WHITE, bold=True, alignment=PP_ALIGN.LEFT)
-
-stage1_bullets = [
-    "Occurs in the thylakoid membranes of chloroplasts",
-    "Sunlight splits water molecules (photolysis): 2 H₂O → 4 H⁺ + 4 e⁻ + O₂",
-    "Electrons move through the electron transport chain (ETC)",
-    "ATP is produced via chemiosmosis (photophosphorylation)",
-    "NADP⁺ is reduced to NADPH",
-    "Oxygen is released as a by-product into the atmosphere",
-]
-add_bullet_frame(sl, Inches(0.65), Inches(2.2), Inches(5.6), Inches(1.9),
-                 stage1_bullets, font_size=12, color=DARK_GREY, bullet_char="▸",
-                 bullet_color=MID_GREEN)
-
-# Arrow between stages
-add_textbox(sl, Inches(6.35), Inches(2.6), Inches(0.65), Inches(0.5),
-            "ATP\nNADPH\n▼", font_size=10, color=MID_GREEN, bold=True,
-            alignment=PP_ALIGN.CENTER)
-
-# ---- Stage 2: Calvin Cycle ----
-right_box = add_rect(sl, Inches(6.8), Inches(1.45), Inches(6.1), Inches(2.8), PALE_GREEN, LIGHT_GREEN)
-# Stage 2 header
-add_rect(sl, Inches(6.8), Inches(1.45), Inches(6.1), Inches(0.55), MID_GREEN)
-add_textbox(sl, Inches(6.95), Inches(1.52), Inches(5.8), Inches(0.45),
-            "🔄  STAGE 2: Calvin Cycle (Light-Independent)",
-            font_size=17, color=WHITE, bold=True, alignment=PP_ALIGN.LEFT)
-
-stage2_bullets = [
-    "Occurs in the stroma of chloroplasts",
-    "Uses ATP and NADPH from Stage 1",
-    "CO₂ is fixed by the enzyme RuBisCO",
-    "3-phosphoglycerate (3-PGA) is reduced to G3P",
-    "G3P is used to synthesize glucose (C₆H₁₂O₆)",
-    "RuBP is regenerated to continue the cycle",
-]
-add_bullet_frame(sl, Inches(7.05), Inches(2.2), Inches(5.6), Inches(1.9),
-                 stage2_bullets, font_size=12, color=DARK_GREY, bullet_char="▸",
-                 bullet_color=MID_GREEN)
-
-# ---- Summary flow diagram ──────────────────────────────────────
-add_textbox(sl, Inches(0.4), Inches(4.5), Inches(12.5), Inches(0.4),
-            "PROCESS FLOW", font_size=12, color=MID_GREEN, bold=True,
-            alignment=PP_ALIGN.CENTER)
-
-flow_items = ["Sunlight\n+ H₂O", "Light\nReactions", "ATP +\nNADPH", "Calvin\nCycle", "Glucose\nC₆H₁₂O₆"]
-flow_width = Inches(2.2)
-total_width = len(flow_items) * flow_width.inches + (len(flow_items) - 1) * 0.3
-start_x = (W.inches - total_width) / 2
-
-for i, item in enumerate(flow_items):
-    x = Inches(start_x + i * (flow_width.inches + 0.3))
-    box = add_rect(sl, x, Inches(4.95), flow_width, Inches(0.75),
-                   MID_GREEN if i % 2 == 0 else LIGHT_GREEN)
-    add_textbox(sl, Inches(x.inches + 0.05), Inches(5.0), Inches(flow_width.inches - 0.1), Inches(0.65),
-                item, font_size=11, color=WHITE, bold=True, alignment=PP_ALIGN.CENTER)
-    if i < len(flow_items) - 1:
-        add_textbox(sl, Inches(x.inches + flow_width.inches + 0.02), Inches(5.1), Inches(0.3), Inches(0.4),
-                    "→", font_size=18, color=MID_GREEN, bold=True, alignment=PP_ALIGN.CENTER)
+# Analogy callout
+analogy3 = rounded_rect(slide3, Inches(9.3), Inches(4.7), Inches(3.2), Inches(1.3),
+                        fill_color=RGBColor(0xE0, 0xEE, 0xE8), line_color=LEAF_GREEN, line_width=Pt(1))
+text_box(slide3, Inches(9.5), Inches(4.8), Inches(2.8), Inches(0.35),
+         "🔋  Analogy", font_name="Calibri", font_size=Pt(13), bold=True, color=LEAF_GREEN)
+text_box(slide3, Inches(9.5), Inches(5.15), Inches(2.8), Inches(0.7),
+         'This is the "charging the battery" phase — capturing and storing energy.',
+         font_name="Calibri Light", font_size=Pt(12), bold=False, color=BODY_TEXT)
 
 # Bottom note
-add_rect(sl, Inches(0.4), Inches(6.05), Inches(12.5), Inches(0.75), DARK_GREEN)
-add_textbox(sl, Inches(0.7), Inches(6.12), Inches(11.9), Inches(0.6),
-            "🧬  Key Enzyme: RuBisCO (Ribulose-1,5-bisphosphate carboxylase/oxygenase) is the most abundant "
-            "protein on Earth and catalyzes the first step of carbon fixation.",
-            font_size=11, color=WHITE, bold=False, alignment=PP_ALIGN.LEFT)
+text_box(slide3, Inches(0.8), Inches(6.4), Inches(11.7), Inches(0.4),
+         "⚡  Light reactions require sunlight — they stop in the dark.",
+         font_name="Calibri", font_size=Pt(12), bold=False, color=SUBTLE)
 
-add_slide_number(sl, 4, PRESENTERS[2])
+rect_shape(slide3, Inches(0), Inches(7.44), W, Inches(0.06), DARK_GREEN)
 
-# =====================================================================
-# SLIDE 5 — Why Photosynthesis Matters
-# =====================================================================
-sl = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(sl, WHITE)
 
-# Header
-add_rect(sl, Inches(0), Inches(0), W, Inches(1.15), DARK_GREEN)
-add_textbox(sl, Inches(0.8), Inches(0.25), Inches(11.5), Inches(0.7),
-            "Why Photosynthesis Matters",
-            font_size=36, color=WHITE, bold=True, alignment=PP_ALIGN.LEFT,
-            font_name="Calibri Light")
+# ══════════════════════════════════════════════════════════════
+# SLIDE 4 — The Calvin Cycle (Member 4)
+# ══════════════════════════════════════════════════════════════
+slide4 = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide4, LIGHT_BG)
+rect_shape(slide4, Inches(0), Inches(0), W, Inches(0.06), DARK_GREEN)
 
-# Four impact columns
-impacts = [
-    ("🌍  Oxygen Production",
-     "Photosynthesis generates the oxygen that sustains aerobic life. Approximately 50-80% "
-     "of Earth's oxygen comes from marine phytoplankton and terrestrial plants combined."),
-    ("🍽️  Food Chain Foundation",
-     "As primary producers, plants convert inorganic carbon into organic compounds. "
-     "Every food chain on Earth — from herbivores to apex predators — depends on this process."),
-    ("🌡️  Climate Regulation",
-     "Photosynthesis removes ~120 Gt of CO₂ from the atmosphere annually. Forests and oceans "
-     "act as carbon sinks, mitigating the greenhouse effect and regulating global temperatures."),
-    ("⚡  Renewable Energy",
-     "Biofuels, biomass energy, and even fossil fuels (ancient photosynthetic matter) trace "
-     "back to photosynthesis. Understanding it inspires artificial photosynthesis research."),
+# Section label
+text_box(slide4, Inches(0.8), Inches(0.5), Inches(5), Inches(0.5),
+         "03  ·  THE CALVIN CYCLE", font_name="Calibri", font_size=Pt(13),
+         bold=True, color=LEAF_GREEN)
+
+text_box(slide4, Inches(0.8), Inches(1.0), Inches(11.7), Inches(0.7),
+         "Building Sugar — Phase 2",
+         font_name="Calibri Light", font_size=Pt(36), bold=False, color=DARK_GREEN)
+
+text_box(slide4, Inches(0.8), Inches(1.55), Inches(11.7), Inches(0.5),
+         "Happens in the stroma — the liquid-filled space inside the chloroplast",
+         font_name="Calibri Light", font_size=Pt(16), bold=False, color=BODY_TEXT)
+
+# ── Calvin Cycle Diagram ──
+# Center of cycle
+cx, cy = Inches(4.2), Inches(4.2)
+cycle_r = Inches(1.2)
+cycle = circle_shape(slide4, cx - cycle_r, cy - cycle_r, cycle_r * 2,
+                     fill_color=None, line_color=LEAF_GREEN, line_width=Pt(3))
+
+text_box(slide4, Inches(3.45), Inches(3.95), Inches(1.5), Inches(0.5),
+         "CALVIN\nCYCLE", font_name="Calibri", font_size=Pt(14), bold=True,
+         color=DARK_GREEN, alignment=PP_ALIGN.CENTER)
+
+# Inputs around the cycle
+inputs_cycle = [
+    # (label, angle-deg, distance from center)
+    ("CO₂ from air", 0, Inches(2.2)),
+    ("ATP from\nLight Rxns", 120, Inches(2.4)),
+    ("NADPH from\nLight Rxns", 240, Inches(2.4)),
+]
+import math
+for label, deg, dist in inputs_cycle:
+    rad = math.radians(deg - 90)  # -90 so 0 degrees is top
+    bx = cx + int(dist * math.cos(rad)) - Inches(0.65)
+    by = cy + int(dist * math.sin(rad)) - Inches(0.4)
+    inp_box = rounded_rect(slide4, bx, by, Inches(1.3), Inches(0.7),
+                           fill_color=RGBColor(0xE0, 0xEE, 0xE8),
+                           line_color=LEAF_GREEN, line_width=Pt(1))
+    text_box(slide4, bx, by, Inches(1.3), Inches(0.6),
+             label, font_name="Calibri", font_size=Pt(11), bold=True,
+             color=DARK_GREEN, alignment=PP_ALIGN.CENTER)
+
+# Output arrow on right
+arrow_right(slide4, Inches(5.8), Inches(3.95), Inches(0.5), Inches(0.35), HIGHLIGHT)
+
+# Glucose output
+glu_box = rounded_rect(slide4, Inches(6.6), Inches(3.5), Inches(1.8), Inches(1.1),
+                       fill_color=DARK_GREEN, line_color=None)
+text_box(slide4, Inches(6.7), Inches(3.6), Inches(1.6), Inches(0.4),
+         "GLUCOSE", font_name="Calibri", font_size=Pt(15), bold=True,
+         color=GOLD_LIGHT, alignment=PP_ALIGN.CENTER)
+text_box(slide4, Inches(6.7), Inches(3.95), Inches(1.6), Inches(0.5),
+         "C₆H₁₂O₆\nPlant Food!",
+         font_name="Calibri Light", font_size=Pt(12), bold=False,
+         color=WHITE, alignment=PP_ALIGN.CENTER)
+
+# Key points on left side
+pts4 = [
+    ("Uses CO₂ from the air + ATP & NADPH from light reactions", False),
+    ("Builds glucose through a cycle of enzyme reactions", False),
+    ("Named after Melvin Calvin — discovered in the 1950s", False),
+    ("This phase doesn't need light directly!", True),
+]
+y_p4 = Inches(5.5)
+for idx, (txt, bld) in enumerate(pts4):
+    if bld:
+        dot = arrow_right(slide4, Inches(0.7), Inches(5.6 + idx * 0.38), Inches(0.25), Inches(0.2), WARM_ACCENT)
+    else:
+        dot = circle_shape(slide4, Inches(0.75), Inches(5.65 + idx * 0.38), Inches(0.12), fill_color=LEAF_GREEN)
+    text_box(slide4, Inches(1.1), Inches(5.52 + idx * 0.38), Inches(7.5), Inches(0.35),
+             txt, font_name="Calibri Light", font_size=Pt(15), bold=bld,
+             color=DARK_GREEN if bld else BODY_TEXT)
+
+# Analogy callout
+analogy4 = rounded_rect(slide4, Inches(9.0), Inches(5.5), Inches(3.5), Inches(1.3),
+                        fill_color=RGBColor(0xE0, 0xEE, 0xE8), line_color=LEAF_GREEN, line_width=Pt(1))
+text_box(slide4, Inches(9.2), Inches(5.6), Inches(3.1), Inches(0.35),
+         "🏗️  Analogy", font_name="Calibri", font_size=Pt(13), bold=True, color=LEAF_GREEN)
+text_box(slide4, Inches(9.2), Inches(5.9), Inches(3.1), Inches(0.8),
+         'The "spending the battery to build stuff" phase — using stored energy to make sugar.',
+         font_name="Calibri Light", font_size=Pt(12), bold=False, color=BODY_TEXT)
+
+rect_shape(slide4, Inches(0), Inches(7.44), W, Inches(0.06), DARK_GREEN)
+
+
+# ══════════════════════════════════════════════════════════════
+# SLIDE 5 — Why This Matters to YOU (Member 5)
+# ══════════════════════════════════════════════════════════════
+slide5 = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide5, LIGHT_BG)
+rect_shape(slide5, Inches(0), Inches(0), W, Inches(0.06), DARK_GREEN)
+
+text_box(slide5, Inches(0.8), Inches(0.5), Inches(5), Inches(0.5),
+         "04  ·  WHY THIS MATTERS", font_name="Calibri", font_size=Pt(13),
+         bold=True, color=LEAF_GREEN)
+
+text_box(slide5, Inches(0.8), Inches(1.0), Inches(11.7), Inches(0.7),
+         "Photosynthesis = Life Support for Planet Earth",
+         font_name="Calibri Light", font_size=Pt(36), bold=False, color=DARK_GREEN)
+
+# Four impact cards in a 2x2 grid
+card_data = [
+    ("OXYGEN", "Every second breath you take comes from ocean phytoplankton — not just trees.",
+     "🫧"),
+    ("FOOD CHAIN", "No photosynthesis = no plants = no animals = no humans. It's the base of everything.",
+     "🌿"),
+    ("CLIMATE", "Plants absorb CO₂, the main greenhouse gas. They're Earth's natural thermostat.",
+     "🌍"),
+    ("DEFORESTATION", "Cutting down forests is literally turning off Earth's oxygen factories.",
+     "🪓"),
 ]
 
-for i, (title, desc) in enumerate(impacts):
-    y = Inches(1.45 + i * 1.35)
-    card = add_rect(sl, Inches(0.4), y, Inches(12.5), Inches(1.2), PALE_GREEN, LIGHT_GREEN)
-    # Icon + title column
-    add_rect(sl, Inches(0.4), y, Inches(3.0), Inches(1.2), LIGHT_GREEN)
-    add_textbox(sl, Inches(0.6), Inches(y.inches + 0.3), Inches(2.6), Inches(0.6),
-                title, font_size=16, color=WHITE, bold=True, alignment=PP_ALIGN.LEFT)
+card_w = Inches(5.6)
+card_h = Inches(1.35)
+start_x = Inches(0.8)
+start_y = Inches(1.95)
+gap_x = Inches(0.3)
+gap_y = Inches(0.25)
+
+for idx, (title, desc, emoji) in enumerate(card_data):
+    col = idx % 2
+    row = idx // 2
+    cx = start_x + col * (card_w + gap_x)
+    cy = start_y + row * (card_h + gap_y)
+
+    card = rounded_rect(slide5, cx, cy, card_w, card_h,
+                        fill_color=WHITE, line_color=RGBColor(0xD0, 0xE4, 0xD8), line_width=Pt(1))
+
+    # Left accent bar
+    rect_shape(slide5, cx, cy, Inches(0.08), card_h,
+               fill_color=LEAF_GREEN if idx != 3 else WARM_ACCENT)
+
+    # Title
+    text_box(slide5, cx + Inches(0.3), cy + Inches(0.12), Inches(4.8), Inches(0.35),
+             title, font_name="Calibri", font_size=Pt(16), bold=True,
+             color=LEAF_GREEN if idx != 3 else WARM_ACCENT)
 
     # Description
-    add_textbox(sl, Inches(3.7), Inches(y.inches + 0.15), Inches(9.0), Inches(0.9),
-                desc, font_size=12, color=DARK_GREY, bold=False, alignment=PP_ALIGN.LEFT)
+    text_box(slide5, cx + Inches(0.3), cy + Inches(0.55), Inches(4.8), Inches(0.7),
+             desc, font_name="Calibri Light", font_size=Pt(14), bold=False,
+             color=BODY_TEXT)
 
-# Bottom callout
-add_rect(sl, Inches(0.4), Inches(6.9), Inches(12.5), Inches(0.45), DARK_GREEN)
-add_textbox(sl, Inches(0.7), Inches(6.93), Inches(11.9), Inches(0.38),
-            "🌱  \"In every walk with nature, one receives far more than he seeks.\" — John Muir",
-            font_size=11, color=WHITE, bold=False, alignment=PP_ALIGN.CENTER)
+# Mind-blowing stat at bottom
+stat_box = rounded_rect(slide5, Inches(0.8), Inches(5.1), Inches(11.7), Inches(1.0),
+                        fill_color=DARK_GREEN, line_color=None)
+text_box(slide5, Inches(1.2), Inches(5.25), Inches(11.0), Inches(0.7),
+         "🌳  A single large tree produces enough oxygen for 2–4 humans per year.",
+         font_name="Calibri Light", font_size=Pt(20), bold=False, color=GOLD_LIGHT,
+         alignment=PP_ALIGN.CENTER)
 
-# Note: the footer is tight here, so adjust
-add_textbox(sl, Inches(0.5), Inches(6.93), Inches(5), Inches(0.4),
-            f"Photosynthesis: How Plants Make Their Own Food  |  {PRESENTERS[3]}",
-            font_size=9, color=WHITE, bold=False, alignment=PP_ALIGN.LEFT)
-add_textbox(sl, Inches(12.2), Inches(6.93), Inches(0.8), Inches(0.4),
-            "5", font_size=9, color=WHITE, bold=True, alignment=PP_ALIGN.RIGHT)
+# Bottom note
+text_box(slide5, Inches(0.8), Inches(6.4), Inches(11.7), Inches(0.4),
+         "The ocean's phytoplankton produce 50–80% of Earth's oxygen. Every other breath = ocean.",
+         font_name="Calibri", font_size=Pt(12), bold=False, color=SUBTLE,
+         alignment=PP_ALIGN.CENTER)
 
-# =====================================================================
-# SLIDE 6 — Summary & Questions
-# =====================================================================
-sl = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(sl, DARK_GREEN)
+rect_shape(slide5, Inches(0), Inches(7.44), W, Inches(0.06), DARK_GREEN)
 
-# Large decorative element
-add_rect(sl, Inches(0), Inches(2.6), W, Inches(2.8), MID_GREEN)
 
-# Title
-add_textbox(sl, Inches(1), Inches(0.6), Inches(11.3), Inches(1.0),
-            "Summary & Key Takeaways",
-            font_size=44, color=WHITE, bold=True, alignment=PP_ALIGN.CENTER,
-            font_name="Calibri Light")
+# ══════════════════════════════════════════════════════════════
+# SLIDE 6 — Key Takeaways + Q&A (Levy)
+# ══════════════════════════════════════════════════════════════
+slide6 = prs.slides.add_slide(prs.slide_layouts[6])
+add_bg(slide6, DARK_GREEN)
+rect_shape(slide6, Inches(0), Inches(0), W, Inches(0.08), HIGHLIGHT)
 
-# Summary bullets in the band
-summary_points = [
-    "Photosynthesis converts light energy → chemical energy (glucose)",
-    "Requires four key ingredients: Sunlight, Water, CO₂, and Chlorophyll",
-    "Two stages: Light-Dependent Reactions + Calvin Cycle",
-    "Produces oxygen essential for aerobic life on Earth",
-    "Foundation of global food chains and carbon cycle regulation",
+text_box(slide6, Inches(1.2), Inches(0.9), Inches(10.9), Inches(0.7),
+         "Key Takeaways",
+         font_name="Calibri Light", font_size=Pt(44), bold=False, color=WHITE,
+         alignment=PP_ALIGN.CENTER)
+
+# Separator
+rect_shape(slide6, Inches(5.0), Inches(1.55), Inches(3.3), Inches(0.03), HIGHLIGHT)
+
+# Takeaways
+takeaways = [
+    ("1", "Photosynthesis turns sunlight into chemical energy —\nthe most important chemical reaction on Earth."),
+    ("2", "Two phases: Light Reactions (capture energy)\n→  Calvin Cycle (build sugar)."),
+    ("3", "Every food chain on Earth starts with photosynthesis."),
+    ("4", "Protecting forests = protecting the planet's life support system."),
 ]
 
-for i, point in enumerate(summary_points):
-    y = Inches(2.9 + i * 0.42)
-    add_textbox(sl, Inches(1.5), y, Inches(10.3), Inches(0.4),
-                f"✦  {point}", font_size=16, color=WHITE, bold=False,
-                alignment=PP_ALIGN.LEFT)
+for idx, (num, txt) in enumerate(takeaways):
+    y = Inches(2.15 + idx * 1.05)
+    # Number circle
+    circle_shape(slide6, Inches(1.4), y, Inches(0.55), fill_color=HIGHLIGHT)
+    text_box(slide6, Inches(1.4), Inches(y / 914400 + 0.1), Inches(0.55), Inches(0.55),
+             num, font_name="Calibri", font_size=Pt(20), bold=True, color=DARK_GREEN,
+             alignment=PP_ALIGN.CENTER)
 
-# Questions section
-add_textbox(sl, Inches(1), Inches(5.6), Inches(11.3), Inches(0.7),
-            "Questions & Discussion",
-            font_size=32, color=LEAF_YELLOW, bold=True, alignment=PP_ALIGN.CENTER,
-            font_name="Calibri Light")
+    # Text
+    text_box(slide6, Inches(2.3), y, Inches(9.5), Inches(1.0),
+             txt, font_name="Calibri Light", font_size=Pt(18), bold=False, color=WHITE,
+             alignment=PP_ALIGN.LEFT)
 
-add_textbox(sl, Inches(1), Inches(6.2), Inches(11.3), Inches(0.5),
-            "Thank you for your attention!  We welcome your questions.",
-            font_size=16, color=WHITE, bold=False, alignment=PP_ALIGN.CENTER)
+# Closing quote box
+quote_box = rounded_rect(slide6, Inches(1.4), Inches(6.35), Inches(10.5), Inches(0.8),
+                         fill_color=RGBColor(0x24, 0x52, 0x3F), line_color=HIGHLIGHT, line_width=Pt(1))
+text_box(slide6, Inches(1.8), Inches(6.45), Inches(9.7), Inches(0.6),
+         '"Next time you see a leaf — that\'s a solar-powered food factory. Respect it."',
+         font_name="Calibri Light", font_size=Pt(20), bold=False, color=GOLD_LIGHT,
+         alignment=PP_ALIGN.CENTER)
 
-# Footer
-add_textbox(sl, Inches(0.5), Inches(6.93), Inches(5), Inches(0.4),
-            f"Photosynthesis: How Plants Make Their Own Food  |  {PRESENTERS[4]}",
-            font_size=9, color=WHITE, bold=False, alignment=PP_ALIGN.LEFT)
-add_textbox(sl, Inches(12.2), Inches(6.93), Inches(0.8), Inches(0.4),
-            "6", font_size=9, color=WHITE, bold=True, alignment=PP_ALIGN.RIGHT)
+# Q&A
+text_box(slide6, Inches(1.2), Inches(7.15), Inches(10.9), Inches(0.3),
+         "Questions & Answers",
+         font_name="Calibri", font_size=Pt(14), bold=True, color=SUBTLE,
+         alignment=PP_ALIGN.CENTER)
 
-# =====================================================================
-# Save
-# =====================================================================
-output_path = r"C:\Users\LENOVO\projects\biology-pptx\Photosynthesis-Claude.pptx"
-prs.save(output_path)
-print(f"✅ Saved: {output_path}")
+rect_shape(slide6, Inches(0), Inches(7.42), W, Inches(0.08), HIGHLIGHT)
+
+# ── Save ─────────────────────────────────────────────────────
+out_path = r"C:\Users\LENOVO\projects\biology-pptx\Photosynthesis.pptx"
+prs.save(out_path)
+print(f"✅ Saved: {out_path}")
 print(f"   Slides: {len(prs.slides)}")
-print(f"   Presenters: {', '.join(PRESENTERS)}")
+print(f"   Size: {os.path.getsize(out_path):,} bytes")
